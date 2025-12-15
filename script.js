@@ -1,5 +1,22 @@
 // State management
 let chart = null;
+let hasCalculated = false;
+
+// Example scenario values
+const exampleScenario = {
+    currentAge: 30,
+    retirementAge: 65,
+    current401k: 50000,
+    currentRothIRA: 25000,
+    currentTaxable: 15000,
+    monthly401k: 800,
+    monthlyIRA: 500,
+    monthlyTaxable: 200,
+    employerMatch: 0.5,
+    annualSpending: 50000,
+    withdrawalRate: 0.04,
+    yearsInRetirement: 30
+};
 
 // Get all input elements
 const inputs = {
@@ -17,10 +34,72 @@ const inputs = {
     yearsInRetirement: document.getElementById('yearsInRetirement')
 };
 
-// Add event listeners to all inputs
-Object.values(inputs).forEach(input => {
-    input.addEventListener('input', calculateAndRender);
+// Get UI elements
+const welcomeMessage = document.getElementById('welcome-message');
+const inputSection = document.getElementById('input-section');
+const resultsSection = document.getElementById('results-section');
+const loadExampleBtn = document.getElementById('load-example-btn');
+const enterOwnBtn = document.getElementById('enter-own-btn');
+const calculateBtn = document.getElementById('calculate-btn');
+const resetBtn = document.getElementById('reset-btn');
+
+// Event listeners for welcome screen buttons
+loadExampleBtn.addEventListener('click', () => {
+    loadExampleScenario();
+    showInputSection();
+    calculateAndRender();
 });
+
+enterOwnBtn.addEventListener('click', () => {
+    showInputSection();
+});
+
+calculateBtn.addEventListener('click', () => {
+    if (validateInputs()) {
+        calculateAndRender();
+    }
+});
+
+resetBtn.addEventListener('click', () => {
+    loadExampleScenario();
+    calculateAndRender();
+});
+
+// Add event listeners to inputs for real-time calculation (only after first calculation)
+Object.values(inputs).forEach(input => {
+    input.addEventListener('input', () => {
+        if (hasCalculated) {
+            calculateAndRender();
+        }
+    });
+});
+
+// Load example scenario into inputs
+function loadExampleScenario() {
+    Object.keys(exampleScenario).forEach(key => {
+        if (inputs[key]) {
+            inputs[key].value = exampleScenario[key];
+        }
+    });
+}
+
+// Show input section and hide welcome
+function showInputSection() {
+    welcomeMessage.classList.add('hidden');
+    inputSection.classList.remove('hidden');
+}
+
+// Validate that all inputs have values
+function validateInputs() {
+    const values = Object.values(inputs).map(input => input.value);
+    const allFilled = values.every(val => val !== '' && val !== null);
+    
+    if (!allFilled) {
+        alert('Please fill in all fields before calculating.');
+        return false;
+    }
+    return true;
+}
 
 // Utility function to format currency
 function formatCurrency(value) {
@@ -242,6 +321,9 @@ function updateUI(projectionData, earliestRetirementAge) {
     const totalContributed = calculateTotalContributed();
     const growthFromInvestment = finalValue.totalAssets - totalContributed;
 
+    // Show results section
+    resultsSection.classList.remove('hidden');
+
     // Update alert
     const alertEl = document.getElementById('retirement-alert');
     if (earliestRetirementAge) {
@@ -289,6 +371,9 @@ function updateUI(projectionData, earliestRetirementAge) {
 
     // Update withdrawal rate display
     document.getElementById('withdrawalRateDisplay').textContent = (withdrawalRate * 100).toFixed(1);
+
+    // Scroll to results
+    resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 // Main calculation and render function
@@ -296,7 +381,5 @@ function calculateAndRender() {
     const { data, earliestRetirementAge } = calculateProjection();
     updateUI(data, earliestRetirementAge);
     updateChart(data);
+    hasCalculated = true;
 }
-
-// Initial calculation on page load
-calculateAndRender();
